@@ -59,11 +59,6 @@ async function setupConnect() {
     const addr = info.addresses[0] || "localhost";
     const url = `http://${addr}:${info.port}/phone.html`;
     document.getElementById("phoneUrl").textContent = url;
-    if (window.QRCode) {
-      QRCode.toCanvas(document.createElement("canvas"), url, { width: 148 }, (err, canvas) => {
-        if (!err) document.getElementById("qr").appendChild(canvas);
-      });
-    }
   } catch {
     document.getElementById("phoneUrl").textContent = "server unavailable";
   }

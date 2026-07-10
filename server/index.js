@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import archiver from "archiver";
+import QRCode from "qrcode";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -61,6 +62,19 @@ app.get("/api/server-info", (req, res) => {
     addresses: localAddresses(),
     port: PORT,
   });
+});
+
+// Locally-generated QR code pointing the phone at this laptop (no external CDN).
+app.get("/api/qr", async (req, res) => {
+  const addr = localAddresses()[0] || "localhost";
+  const url = `http://${addr}:${PORT}/phone.html`;
+  try {
+    const svg = await QRCode.toString(url, { type: "svg", margin: 1, width: 176 });
+    res.setHeader("Content-Type", "image/svg+xml");
+    res.send(svg);
+  } catch {
+    res.status(500).json({ error: "failed to generate qr" });
+  }
 });
 
 app.get("/api/stats", (req, res) => {

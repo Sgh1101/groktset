@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PhotoBackup · Laptop Dashboard</title>
     <link rel="stylesheet" href="/css/style.css" />
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   </head>
   <body>
     <div class="wrap">
@@ -48,7 +47,7 @@
           background and only new photos are transferred.
         </p>
         <div class="row">
-          <div class="qr" id="qr"></div>
+          <div class="qr" id="qr"><img src="/api/qr" alt="Scan to open on your phone" width="176" height="176" /></div>
           <div>
             <div class="counters">
               <span>Phone URL:&nbsp;<b id="phoneUrl">—</b></span>
