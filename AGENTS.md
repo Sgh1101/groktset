@@ -46,3 +46,13 @@ Standard scripts live in `package.json`:
 - Real always-on background backup while the phone is **locked** requires a
   native mobile app; this web app backs up whenever the uploader page is open
   and the screen is awake (it requests a Screen Wake Lock).
+- Backup is **consent-based and owner-initiated**: the phone owner picks what to
+  send (photos/videos, files, or specific contacts). Contact backup uses the
+  Contact Picker API (`navigator.contacts.select`), which only exists in Chrome
+  on **Android** over HTTPS/localhost — desktop Chrome shows a fallback message,
+  so test contacts via `POST /api/contacts` (`{ "contacts": [...] }`). Contacts
+  are saved to `backups/contacts/` as `contacts.json` + `contacts.vcf`.
+- Uploaded items are classified as `photo` / `video` / `file`; media shows in
+  the gallery, other files in the "Backed-up files" list. Do **not** add
+  notification interception or silent/covert collection — that is out of scope by
+  design (surveillance/stalkerware risk).
