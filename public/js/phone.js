@@ -1,4 +1,6 @@
 const DONE_KEY = "pb_done_signatures";
+const DEVICE_ID_KEY = "pb_device_id";
+const DEVICE_NAME_KEY = "pb_device_name";
 const CONCURRENCY = 3;
 
 const els = {
@@ -6,6 +8,7 @@ const els = {
   filePicker: document.getElementById("filePicker"),
   contactsBtn: document.getElementById("contactsBtn"),
   contactsStatus: document.getElementById("contactsStatus"),
+  deviceName: document.getElementById("deviceName"),
   keepAwake: document.getElementById("keepAwake"),
   progressCard: document.getElementById("progressCard"),
   bar: document.getElementById("bar"),
@@ -19,6 +22,32 @@ const els = {
 
 const counters = { total: 0, up: 0, skip: 0, err: 0, done: 0 };
 let wakeLock = null;
+
+// Stable per-phone identity so the laptop can group backups by device.
+function getDeviceId() {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id =
+      window.crypto?.randomUUID?.() ||
+      `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
+const deviceId = getDeviceId();
+
+function getDeviceName() {
+  return (
+    els.deviceName.value.trim() ||
+    localStorage.getItem(DEVICE_NAME_KEY) ||
+    `Phone ${deviceId.slice(0, 4)}`
+  );
+}
+els.deviceName.value =
+  localStorage.getItem(DEVICE_NAME_KEY) || `Phone ${deviceId.slice(0, 4)}`;
+els.deviceName.addEventListener("change", () => {
+  localStorage.setItem(DEVICE_NAME_KEY, getDeviceName());
+});
 
 function loadDone() {
   try {
@@ -109,6 +138,16 @@ async function uploadOne(file) {
         r.json(),
       );
       if (exists) {
+        // Attribute this device to the existing file without re-sending bytes.
+        fetch("/api/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            hash,
+            deviceId,
+            deviceName: getDeviceName(),
+          }),
+        }).catch(() => {});
         done.add(sig);
         saveDone(done);
         counters.skip++;
@@ -126,6 +165,8 @@ async function uploadOne(file) {
   form.append("photo", file, file.name);
   form.append("name", file.name);
   form.append("type", file.type || "application/octet-stream");
+  form.append("deviceId", deviceId);
+  form.append("deviceName", getDeviceName());
 
   let attempt = 0;
   while (attempt < 4) {
@@ -217,7 +258,11 @@ els.contactsBtn.addEventListener("click", async () => {
     const res = await fetch("/api/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contacts: selected }),
+      body: JSON.stringify({
+        contacts: selected,
+        deviceId,
+        deviceName: getDeviceName(),
+      }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();

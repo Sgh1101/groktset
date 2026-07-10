@@ -308,6 +308,30 @@ header.top {
   color: var(--text);
 }
 
+.devrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.devrow span {
+  flex-shrink: 0;
+}
+
+.devrow input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+}
+
 .switch {
   display: inline-flex;
   align-items: center;

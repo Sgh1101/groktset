@@ -19,12 +19,15 @@ const CONTACTS_DIR = path.join(BACKUP_DIR, "contacts");
 const CONTACTS_JSON = path.join(CONTACTS_DIR, "contacts.json");
 const CONTACTS_VCF = path.join(CONTACTS_DIR, "contacts.vcf");
 const MANIFEST_PATH = path.join(BACKUP_DIR, "manifest.json");
+const DEVICES_PATH = path.join(BACKUP_DIR, "devices.json");
 const TMP_DIR = path.join(BACKUP_DIR, ".tmp");
 
 /** @type {Map<string, object>} hash -> file record */
 let manifest = new Map();
 /** @type {Map<string, object>} signature -> contact record */
 let contacts = new Map();
+/** @type {Map<string, object>} deviceId -> { id, name, firstSeen, lastSeen } */
+let devices = new Map();
 
 export function getBackupDir() {
   return BACKUP_DIR;
@@ -44,6 +47,53 @@ export async function init() {
   await fsp.mkdir(TMP_DIR, { recursive: true });
   await loadManifest();
   await loadContacts();
+  await loadDevices();
+}
+
+async function loadDevices() {
+  try {
+    const raw = await fsp.readFile(DEVICES_PATH, "utf8");
+    devices = new Map(JSON.parse(raw).map((d) => [d.id, d]));
+  } catch (err) {
+    if (err.code !== "ENOENT") {
+      console.error("Failed to read devices, starting fresh:", err.message);
+    }
+    devices = new Map();
+  }
+}
+
+async function persistDevices() {
+  const tmp = `${DEVICES_PATH}.tmp`;
+  await fsp.writeFile(tmp, JSON.stringify([...devices.values()], null, 2));
+  await fsp.rename(tmp, DEVICES_PATH);
+}
+
+/** Record that a device is active (creates/updates its registry entry). */
+async function touchDevice(deviceId, deviceName) {
+  if (!deviceId) return null;
+  const now = new Date().toISOString();
+  const existing = devices.get(deviceId);
+  if (existing) {
+    existing.lastSeen = now;
+    if (deviceName) existing.name = deviceName;
+  } else {
+    devices.set(deviceId, {
+      id: deviceId,
+      name: deviceName || `Device ${deviceId.slice(0, 6)}`,
+      firstSeen: now,
+      lastSeen: now,
+    });
+  }
+  await persistDevices();
+  return devices.get(deviceId);
+}
+
+function addDeviceToArray(record, deviceId) {
+  if (!deviceId) return false;
+  if (!Array.isArray(record.devices)) record.devices = [];
+  if (record.devices.includes(deviceId)) return false;
+  record.devices.push(deviceId);
+  return true;
 }
 
 async function loadManifest() {
@@ -105,12 +155,15 @@ async function hashFile(filePath) {
  * Ingest an uploaded temp file. Returns { status: "stored" | "skipped", record }.
  * Deduplicates by content hash so already-backed-up files are never duplicated.
  */
-export async function ingest({ tmpPath, originalName, mimeType }) {
+export async function ingest({ tmpPath, originalName, mimeType, deviceId, deviceName }) {
   const hash = await hashFile(tmpPath);
+  await touchDevice(deviceId, deviceName);
 
   if (manifest.has(hash)) {
     await fsp.rm(tmpPath, { force: true });
-    return { status: "skipped", record: manifest.get(hash) };
+    const record = manifest.get(hash);
+    if (addDeviceToArray(record, deviceId)) await persistManifest();
+    return { status: "skipped", record };
   }
 
   const safeName = sanitize(originalName);
@@ -128,11 +181,24 @@ export async function ingest({ tmpPath, originalName, mimeType }) {
     size: stat.size,
     type,
     kind: classify(type),
+    devices: deviceId ? [deviceId] : [],
     uploadedAt: new Date().toISOString(),
   };
   manifest.set(hash, record);
   await persistManifest();
   return { status: "stored", record };
+}
+
+/**
+ * Associate a device with an already-stored file (by hash) without re-uploading
+ * its bytes. Used when the phone detects the laptop already has the content.
+ */
+export async function claim({ hash, deviceId, deviceName }) {
+  await touchDevice(deviceId, deviceName);
+  const record = manifest.get(hash);
+  if (!record) return { claimed: false };
+  if (addDeviceToArray(record, deviceId)) await persistManifest();
+  return { claimed: true };
 }
 
 function byNewest(a, b) {
@@ -221,30 +287,57 @@ async function persistContacts() {
  * Add contacts the phone owner explicitly selected. Deduplicated by content.
  * Returns { added, skipped }.
  */
-export async function addContacts(items) {
+export async function addContacts(items, { deviceId, deviceName } = {}) {
+  await touchDevice(deviceId, deviceName);
   let added = 0;
   let skipped = 0;
+  let changed = false;
   for (const raw of items || []) {
     const c = normalizeContact(raw);
     if (!c.name && c.tels.length === 0 && c.emails.length === 0) continue;
     const signature = contactSignature(c);
-    if (contacts.has(signature)) {
+    const existing = contacts.get(signature);
+    if (existing) {
       skipped++;
+      if (addDeviceToArray(existing, deviceId)) changed = true;
       continue;
     }
     contacts.set(signature, {
       ...c,
       signature,
+      devices: deviceId ? [deviceId] : [],
       uploadedAt: new Date().toISOString(),
     });
     added++;
+    changed = true;
   }
-  if (added > 0) await persistContacts();
+  if (changed) await persistContacts();
   return { added, skipped };
 }
 
 export function listContacts() {
   return [...contacts.values()].sort(byNewest);
+}
+
+/* ----------------------------------------------------------------- devices */
+
+export function getDevices() {
+  const fileRecords = [...manifest.values()];
+  const contactRecords = [...contacts.values()];
+  return [...devices.values()]
+    .map((d) => {
+      const owned = fileRecords.filter((r) => (r.devices || []).includes(d.id));
+      return {
+        ...d,
+        mediaCount: owned.filter((r) => r.kind === "photo" || r.kind === "video")
+          .length,
+        fileCount: owned.filter((r) => r.kind === "file").length,
+        contactsCount: contactRecords.filter((c) =>
+          (c.devices || []).includes(d.id),
+        ).length,
+      };
+    })
+    .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
 }
 
 /* ------------------------------------------------------------------- stats */
@@ -266,6 +359,7 @@ export function getStats() {
     mediaCount,
     fileCount,
     contactsCount: contacts.size,
+    deviceCount: devices.size,
     totalBytes,
     lastBackupAt,
     backupDir: BACKUP_DIR,

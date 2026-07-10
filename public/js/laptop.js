@@ -117,6 +117,31 @@ async function refreshContacts() {
   }
 }
 
+async function refreshDevices() {
+  try {
+    const { devices } = await fetch("/api/devices").then((r) => r.json());
+    const list = document.getElementById("devicesList");
+    document.getElementById("devicesEmpty").style.display = devices.length
+      ? "none"
+      : "block";
+    list.innerHTML = devices
+      .map((d) => {
+        const parts = [];
+        if (d.mediaCount) parts.push(`${d.mediaCount} photos/videos`);
+        if (d.fileCount) parts.push(`${d.fileCount} files`);
+        if (d.contactsCount) parts.push(`${d.contactsCount} contacts`);
+        const summary = parts.length ? parts.join(" · ") : "no items yet";
+        return `<div class="list-row">
+                  <span class="list-main">📱 ${escapeHtml(d.name)}</span>
+                  <span class="list-sub">${summary} · seen ${timeAgo(d.lastSeen)}</span>
+                </div>`;
+      })
+      .join("");
+  } catch {
+    /* ignore */
+  }
+}
+
 async function setupConnect() {
   try {
     const info = await fetch("/api/server-info").then((r) => r.json());
@@ -130,6 +155,7 @@ async function setupConnect() {
 
 function refreshAll() {
   refreshStats();
+  refreshDevices();
   refreshGallery();
   refreshFiles();
   refreshContacts();

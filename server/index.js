@@ -100,7 +100,10 @@ app.post("/api/contacts", async (req, res) => {
     return res.status(400).json({ error: "expected { contacts: [...] }" });
   }
   try {
-    const result = await storage.addContacts(items);
+    const result = await storage.addContacts(items, {
+      deviceId: req.body.deviceId,
+      deviceName: req.body.deviceName,
+    });
     res.json(result);
   } catch (err) {
     console.error("Failed to save contacts:", err);
@@ -127,6 +130,23 @@ app.get("/api/exists/:hash", (req, res) => {
   res.json({ exists: storage.hasHash(req.params.hash) });
 });
 
+// Devices (phones) that have backed up to this laptop, with per-device counts.
+app.get("/api/devices", (req, res) => {
+  res.json({ devices: storage.getDevices() });
+});
+
+// Associate a device with an already-stored file without re-sending its bytes.
+app.post("/api/claim", async (req, res) => {
+  const { hash, deviceId, deviceName } = req.body || {};
+  if (!hash) return res.status(400).json({ error: "hash required" });
+  try {
+    res.json(await storage.claim({ hash, deviceId, deviceName }));
+  } catch (err) {
+    console.error("Claim failed:", err);
+    res.status(500).json({ error: "claim failed" });
+  }
+});
+
 app.post("/api/upload", upload.single("photo"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "no file provided (field 'photo')" });
@@ -136,6 +156,8 @@ app.post("/api/upload", upload.single("photo"), async (req, res) => {
       tmpPath: req.file.path,
       originalName: req.body.name || req.file.originalname,
       mimeType: req.body.type || req.file.mimetype,
+      deviceId: req.body.deviceId,
+      deviceName: req.body.deviceName,
     });
     res.json(result);
   } catch (err) {
