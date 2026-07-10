@@ -1,0 +1,32 @@
+{
+  "name": "groktset",
+  "version": "1.0.0",
+  "description": "Background photo backup: phone photos are streamed and saved directly to a laptop over the local network.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon --watch server server/index.js",
+    "lint": "eslint .",
+    "test": "node --test"
+  },
+  "keywords": [
+    "photo",
+    "backup",
+    "phone",
+    "laptop",
+    "sync"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "express": "^4.21.2",
+    "multer": "^2.2.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "eslint": "^9.17.0",
+    "nodemon": "^3.1.9"
+  }
+}
