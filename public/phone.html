@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>PhotoBackup · Phone</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0b1020" />
+  </head>
+  <body>
+    <div class="wrap" style="max-width: 560px">
+      <header class="top">
+        <div class="brand">
+          <div class="logo">📲</div>
+          <div>
+            <h1>Back up my photos</h1>
+            <p>Sends every photo straight to your laptop</p>
+          </div>
+        </div>
+        <span class="pill live" id="statusPill">● connected</span>
+      </header>
+
+      <div class="card">
+        <h2>1 · Pick your photos</h2>
+        <p class="hint">
+          Tap below and choose <b>Select all</b> in your gallery. Already
+          backed-up photos are skipped automatically, so you can safely run this
+          again anytime.
+        </p>
+        <label class="btn block" for="picker">📷 Back up all photos</label>
+        <input
+          id="picker"
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          hidden
+        />
+        <label class="switch">
+          <input type="checkbox" id="keepAwake" checked />
+          Keep screen awake while backing up
+        </label>
+      </div>
+
+      <div class="card" id="progressCard" style="display: none">
+        <h2>2 · Backing up…</h2>
+        <div class="progress"><span id="bar"></span></div>
+        <div class="counters">
+          <span>Total: <b id="cTotal">0</b></span>
+          <span>Uploaded: <b id="cUp">0</b></span>
+          <span>Skipped: <b id="cSkip">0</b></span>
+          <span>Failed: <b id="cErr">0</b></span>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="card">
+        <p class="hint" style="margin: 0">
+          Keep this page open while backing up. For true always-on background
+          backup even when your phone is locked, a native app is required — this
+          web app backs up reliably whenever the page is open and the screen is
+          awake.
+        </p>
+        <a class="link" href="/" style="display: inline-block; margin-top: 10px"
+          >View backups on the laptop dashboard →</a
+        >
+      </div>
+    </div>
+
+    <script src="/js/phone.js"></script>
+  </body>
+</html>

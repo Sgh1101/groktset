@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PhotoBackup · Laptop Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <div class="brand">
+          <div class="logo">🖼️</div>
+          <div>
+            <h1>PhotoBackup</h1>
+            <p>Phone photos, backed up straight to this laptop</p>
+          </div>
+        </div>
+        <span class="pill live" id="statusPill">● live</span>
+      </header>
+
+      <div class="grid">
+        <div class="stat">
+          <div class="label">Photos backed up</div>
+          <div class="value" id="statCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Total size</div>
+          <div class="value" id="statSize">0 B</div>
+        </div>
+        <div class="stat">
+          <div class="label">Last backup</div>
+          <div class="value" id="statLast" style="font-size: 18px">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Saving to</div>
+          <div class="value" style="font-size: 15px">💾 this laptop</div>
+          <div class="sub" id="statDir">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Connect your phone</h2>
+        <p class="hint">
+          On your phone (same Wi-Fi), open the address below or scan the QR code,
+          then tap <b>Back up all photos</b>. Uploads keep running in the
+          background and only new photos are transferred.
+        </p>
+        <div class="row">
+          <div class="qr" id="qr"></div>
+          <div>
+            <div class="counters">
+              <span>Phone URL:&nbsp;<b id="phoneUrl">—</b></span>
+            </div>
+            <p class="hint" style="margin-top: 10px">
+              If the QR points to <code>localhost</code>, run the server on your
+              laptop and reload — it will show your laptop's Wi-Fi address.
+            </p>
+            <a class="link" id="openPhone" href="/phone.html" target="_blank"
+              >Open the phone uploader here →</a
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content: space-between">
+          <div>
+            <h2>Backed-up photos</h2>
+            <p class="hint" style="margin: 0">
+              Stored on this machine and available to download.
+            </p>
+          </div>
+          <a class="btn secondary" id="downloadAll" href="/api/download-all"
+            >⬇ Download all (.zip)</a
+          >
+        </div>
+        <div id="gallery" class="gallery" style="margin-top: 14px"></div>
+        <div class="empty" id="galleryEmpty">
+          No photos yet — back some up from your phone to see them here.
+        </div>
+      </div>
+
+      <footer>PhotoBackup · runs locally, your photos never leave your network</footer>
+    </div>
+
+    <script src="/js/laptop.js"></script>
+  </body>
+</html>
