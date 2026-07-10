@@ -210,11 +210,38 @@ header.top {
   background: var(--bg-soft);
 }
 
-.gallery img {
+.gallery img,
+.gallery video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  background: #000;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  margin-bottom: 8px;
+}
+
+.list-main {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  flex-shrink: 0;
 }
 
 .empty {

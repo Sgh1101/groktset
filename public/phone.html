@@ -22,13 +22,14 @@
       </header>
 
       <div class="card">
-        <h2>1 · Pick your photos</h2>
+        <h2>1 · Choose what to back up</h2>
         <p class="hint">
-          Tap below and choose <b>Select all</b> in your gallery. Already
-          backed-up photos are skipped automatically, so you can safely run this
-          again anytime.
+          Tap a button and pick your items (choose <b>Select all</b> for
+          everything). Already backed-up items are skipped automatically, so you
+          can safely run this again anytime. You stay in control — you pick what
+          gets sent.
         </p>
-        <label class="btn block" for="picker">📷 Back up all photos</label>
+        <label class="btn block" for="picker">📷 Back up photos &amp; videos</label>
         <input
           id="picker"
           type="file"
@@ -36,6 +37,14 @@
           multiple
           hidden
         />
+        <label class="btn block secondary" for="filePicker" style="margin-top: 10px"
+          >📁 Back up files</label
+        >
+        <input id="filePicker" type="file" multiple hidden />
+        <button class="btn block secondary" id="contactsBtn" style="margin-top: 10px">
+          👤 Back up contacts
+        </button>
+        <div class="hint" id="contactsStatus" style="margin-top: 10px"></div>
         <label class="switch">
           <input type="checkbox" id="keepAwake" checked />
           Keep screen awake while backing up
@@ -43,7 +52,7 @@
       </div>
 
       <div class="card" id="progressCard" style="display: none">
-        <h2>2 · Backing up…</h2>
+        <h2>2 · Backing up files…</h2>
         <div class="progress"><span id="bar"></span></div>
         <div class="counters">
           <span>Total: <b id="cTotal">0</b></span>

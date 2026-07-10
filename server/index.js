@@ -27,7 +27,7 @@ const upload = multer({
 });
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "5mb" }));
 app.use(express.static(PUBLIC_DIR));
 
 // Serve stored photos for the gallery / preview.
@@ -82,7 +82,39 @@ app.get("/api/stats", (req, res) => {
 });
 
 app.get("/api/photos", (req, res) => {
-  res.json({ photos: storage.listPhotos() });
+  res.json({ photos: storage.listMedia() });
+});
+
+app.get("/api/files", (req, res) => {
+  res.json({ files: storage.listFiles() });
+});
+
+// Contacts the phone owner explicitly picked and sent over.
+app.get("/api/contacts", (req, res) => {
+  res.json({ contacts: storage.listContacts() });
+});
+
+app.post("/api/contacts", async (req, res) => {
+  const items = Array.isArray(req.body?.contacts) ? req.body.contacts : null;
+  if (!items) {
+    return res.status(400).json({ error: "expected { contacts: [...] }" });
+  }
+  try {
+    const result = await storage.addContacts(items);
+    res.json(result);
+  } catch (err) {
+    console.error("Failed to save contacts:", err);
+    res.status(500).json({ error: "failed to save contacts" });
+  }
+});
+
+app.get("/api/contacts.vcf", (req, res) => {
+  if (storage.listContacts().length === 0) {
+    return res.status(404).json({ error: "no contacts backed up yet" });
+  }
+  res.setHeader("Content-Type", "text/vcard; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="contacts.vcf"');
+  res.sendFile(storage.getContactsVcfPath());
 });
 
 // The phone fetches known hashes so it can skip already-backed-up photos.
@@ -119,9 +151,9 @@ app.post("/api/upload", upload.single("photo"), async (req, res) => {
 
 // Download every backed-up photo as a single zip.
 app.get("/api/download-all", (req, res) => {
-  const photos = storage.listPhotos();
+  const photos = storage.listAll();
   if (photos.length === 0) {
-    return res.status(404).json({ error: "no photos backed up yet" });
+    return res.status(404).json({ error: "no files backed up yet" });
   }
   res.setHeader("Content-Type", "application/zip");
   res.setHeader(

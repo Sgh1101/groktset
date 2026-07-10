@@ -14,19 +14,28 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString();
 }
 
+function escapeHtml(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
+}
+
 async function refreshStats() {
   try {
     const stats = await fetch("/api/stats").then((r) => r.json());
-    document.getElementById("statCount").textContent = stats.count;
+    document.getElementById("statMedia").textContent = stats.mediaCount ?? 0;
+    document.getElementById("statFiles").textContent = stats.fileCount ?? 0;
+    document.getElementById("statContacts").textContent =
+      stats.contactsCount ?? 0;
     document.getElementById("statSize").textContent = humanBytes(
       stats.totalBytes,
     );
-    document.getElementById("statLast").textContent = timeAgo(
+    document.getElementById("statLast").textContent = `Last backup: ${timeAgo(
       stats.lastBackupAt,
-    );
-    document.getElementById("statDir").textContent = stats.backupDir;
-    document.getElementById("downloadAll").style.display =
-      stats.count > 0 ? "" : "none";
+    )}`;
+    document.getElementById("statDir").textContent = `💾 ${stats.backupDir}`;
   } catch {
     document.getElementById("statusPill").textContent = "● offline";
     document.getElementById("statusPill").classList.remove("live");
@@ -39,14 +48,69 @@ async function refreshGallery() {
     const gallery = document.getElementById("gallery");
     const empty = document.getElementById("galleryEmpty");
     empty.style.display = photos.length ? "none" : "block";
+    document.getElementById("downloadAll").style.display = photos.length
+      ? ""
+      : "none";
     gallery.innerHTML = photos
       .slice(0, 60)
+      .map((p) => {
+        const src = `/photos/${encodeURIComponent(p.storedName)}`;
+        if (p.kind === "video") {
+          return `<a href="${src}" target="_blank" title="${escapeHtml(p.originalName)}">
+                    <video src="${src}" muted preload="metadata"></video>
+                  </a>`;
+        }
+        return `<a href="${src}" target="_blank" title="${escapeHtml(p.originalName)}">
+                  <img loading="lazy" src="${src}" alt="${escapeHtml(p.originalName)}" />
+                </a>`;
+      })
+      .join("");
+  } catch {
+    /* ignore */
+  }
+}
+
+async function refreshFiles() {
+  try {
+    const { files } = await fetch("/api/files").then((r) => r.json());
+    const list = document.getElementById("filesList");
+    document.getElementById("filesEmpty").style.display = files.length
+      ? "none"
+      : "block";
+    list.innerHTML = files
       .map(
-        (p) =>
-          `<a href="/photos/${encodeURIComponent(p.storedName)}" target="_blank" title="${p.originalName}">
-             <img loading="lazy" src="/photos/${encodeURIComponent(p.storedName)}" alt="${p.originalName}" />
-           </a>`,
+        (f) =>
+          `<div class="list-row">
+             <span class="list-main">📄 <a class="link" href="/photos/${encodeURIComponent(
+               f.storedName,
+             )}" target="_blank">${escapeHtml(f.originalName)}</a></span>
+             <span class="list-sub">${humanBytes(f.size)}</span>
+           </div>`,
       )
+      .join("");
+  } catch {
+    /* ignore */
+  }
+}
+
+async function refreshContacts() {
+  try {
+    const { contacts } = await fetch("/api/contacts").then((r) => r.json());
+    const list = document.getElementById("contactsList");
+    document.getElementById("contactsEmpty").style.display = contacts.length
+      ? "none"
+      : "block";
+    document.getElementById("downloadVcf").style.display = contacts.length
+      ? ""
+      : "none";
+    list.innerHTML = contacts
+      .map((c) => {
+        const detail = [...(c.tels || []), ...(c.emails || [])].join(" · ");
+        return `<div class="list-row">
+                  <span class="list-main">👤 ${escapeHtml(c.name || "Unknown")}</span>
+                  <span class="list-sub">${escapeHtml(detail)}</span>
+                </div>`;
+      })
       .join("");
   } catch {
     /* ignore */
@@ -64,10 +128,13 @@ async function setupConnect() {
   }
 }
 
-setupConnect();
-refreshStats();
-refreshGallery();
-setInterval(() => {
+function refreshAll() {
   refreshStats();
   refreshGallery();
-}, 3000);
+  refreshFiles();
+  refreshContacts();
+}
+
+setupConnect();
+refreshAll();
+setInterval(refreshAll, 3000);

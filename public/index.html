@@ -21,20 +21,21 @@
 
       <div class="grid">
         <div class="stat">
-          <div class="label">Photos backed up</div>
-          <div class="value" id="statCount">0</div>
+          <div class="label">Photos &amp; videos</div>
+          <div class="value" id="statMedia">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Files</div>
+          <div class="value" id="statFiles">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Contacts</div>
+          <div class="value" id="statContacts">0</div>
         </div>
         <div class="stat">
           <div class="label">Total size</div>
           <div class="value" id="statSize">0 B</div>
-        </div>
-        <div class="stat">
-          <div class="label">Last backup</div>
-          <div class="value" id="statLast" style="font-size: 18px">—</div>
-        </div>
-        <div class="stat">
-          <div class="label">Saving to</div>
-          <div class="value" style="font-size: 15px">💾 this laptop</div>
+          <div class="sub" id="statLast">Last backup: —</div>
           <div class="sub" id="statDir">—</div>
         </div>
       </div>
@@ -66,7 +67,25 @@
       <div class="card">
         <div class="row" style="justify-content: space-between">
           <div>
-            <h2>Backed-up photos</h2>
+            <h2>Contacts</h2>
+            <p class="hint" style="margin: 0">
+              Contacts you chose to send, saved as a vCard on this machine.
+            </p>
+          </div>
+          <a class="btn secondary" id="downloadVcf" href="/api/contacts.vcf"
+            >⬇ Download .vcf</a
+          >
+        </div>
+        <div id="contactsList" style="margin-top: 14px"></div>
+        <div class="empty" id="contactsEmpty">
+          No contacts yet — tap "Back up contacts" on your phone.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content: space-between">
+          <div>
+            <h2>Backed-up photos &amp; videos</h2>
             <p class="hint" style="margin: 0">
               Stored on this machine and available to download.
             </p>
@@ -78,6 +97,15 @@
         <div id="gallery" class="gallery" style="margin-top: 14px"></div>
         <div class="empty" id="galleryEmpty">
           No photos yet — back some up from your phone to see them here.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Backed-up files</h2>
+        <p class="hint">Documents and other files saved on this machine.</p>
+        <div id="filesList"></div>
+        <div class="empty" id="filesEmpty">
+          No files yet — use "Back up files" on your phone.
         </div>
       </div>
 

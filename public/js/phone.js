@@ -3,6 +3,9 @@ const CONCURRENCY = 3;
 
 const els = {
   picker: document.getElementById("picker"),
+  filePicker: document.getElementById("filePicker"),
+  contactsBtn: document.getElementById("contactsBtn"),
+  contactsStatus: document.getElementById("contactsStatus"),
   keepAwake: document.getElementById("keepAwake"),
   progressCard: document.getElementById("progressCard"),
   bar: document.getElementById("bar"),
@@ -167,8 +170,8 @@ async function runQueue(files) {
   await Promise.all(workers);
 }
 
-els.picker.addEventListener("change", async (e) => {
-  const files = [...e.target.files];
+async function handleFiles(input) {
+  const files = [...input.files];
   if (!files.length) return;
 
   Object.assign(counters, { total: files.length, up: 0, skip: 0, err: 0, done: 0 });
@@ -183,7 +186,45 @@ els.picker.addEventListener("change", async (e) => {
   logLine(
     `Done — ${counters.up} uploaded, ${counters.skip} skipped, ${counters.err} failed.`,
   );
-  els.picker.value = "";
+  input.value = "";
+}
+
+els.picker.addEventListener("change", () => handleFiles(els.picker));
+els.filePicker.addEventListener("change", () => handleFiles(els.filePicker));
+
+// Contacts: the owner explicitly picks which contacts to send (Contact Picker API).
+els.contactsBtn.addEventListener("click", async () => {
+  if (!("contacts" in navigator) || !navigator.contacts?.select) {
+    els.contactsStatus.innerHTML =
+      '<span class="err">Contact backup needs Chrome on Android over HTTPS/localhost. On other devices, export contacts to a .vcf file and back it up with "Back up files".</span>';
+    return;
+  }
+  try {
+    const props = ["name", "tel", "email"];
+    let supported = props;
+    if (navigator.contacts.getProperties) {
+      supported = await navigator.contacts.getProperties();
+    }
+    const selected = await navigator.contacts.select(
+      props.filter((p) => supported.includes(p)),
+      { multiple: true },
+    );
+    if (!selected.length) {
+      els.contactsStatus.textContent = "No contacts selected.";
+      return;
+    }
+    els.contactsStatus.textContent = `Sending ${selected.length} contact(s)…`;
+    const res = await fetch("/api/contacts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contacts: selected }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    els.contactsStatus.innerHTML = `<span class="ok">✓ Contacts backed up — ${data.added} new, ${data.skipped} already saved.</span>`;
+  } catch (err) {
+    els.contactsStatus.innerHTML = `<span class="err">Contact backup cancelled or failed: ${err.message}</span>`;
+  }
 });
 
 // Connectivity indicator.
